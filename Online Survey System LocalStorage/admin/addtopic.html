@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Add a new survey topic." />
+  <title>Add Topic — SurveyPulse Admin</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+<script src="../js/storage.js"></script>
+<script src="../js/auth.js"></script>
+
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-text">📋 SurveyPulse</div>
+      <div class="logo-sub">Admin Panel</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="home.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="addtopic.html" class="active"><span class="nav-icon">➕</span> Add Topic</a>
+      <a href="../index.html" target="_blank"><span class="nav-icon">📋</span> View Survey</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar" id="avatarLetter">A</div>
+        <div>
+          <div class="uname" id="sessionUname">admin</div>
+          <div class="text-muted" style="font-size:0.72rem;">Administrator</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="doLogout()">
+        🚪 Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1>Add Topic</h1>
+      <p>Create a new survey topic. You can add questions to it afterwards.</p>
+    </div>
+
+    <div class="card" style="max-width:540px;">
+      <div id="alert" class="alert"></div>
+
+      <form id="addForm" onsubmit="addTopic(event)">
+        <div class="form-group">
+          <label class="form-label" for="topicTitle">Topic Title</label>
+          <input id="topicTitle" class="form-control" type="text"
+                 placeholder="e.g. Technology Trends 2025"
+                 maxlength="100" required />
+          <div class="text-muted mt-8" style="font-size:0.78rem;">Maximum 100 characters.</div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <button type="submit" class="btn btn-primary">✓ Add Topic</button>
+          <a href="home.html" class="btn btn-ghost">← Back</a>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+  const session = DB.getSession();
+  if (session) {
+    document.getElementById('sessionUname').textContent = session.uname;
+    document.getElementById('avatarLetter').textContent = session.uname[0].toUpperCase();
+  }
+
+  function doLogout() {
+    DB.logout();
+    window.location.replace('login.html');
+  }
+
+  function addTopic(e) {
+    e.preventDefault();
+    const title = document.getElementById('topicTitle').value.trim();
+    const alertEl = document.getElementById('alert');
+
+    if (!title) {
+      alertEl.textContent = '⚠️ Topic title cannot be empty.';
+      alertEl.className = 'alert alert-error show';
+      return;
+    }
+
+    const uname = session ? session.uname : 'admin';
+    DB.addTopic(title, uname);
+
+    alertEl.textContent = `✅ Topic "${title}" has been added successfully!`;
+    alertEl.className = 'alert alert-success show';
+    document.getElementById('topicTitle').value = '';
+
+    setTimeout(() => { window.location.href = 'home.html'; }, 1200);
+  }
+</script>
+</body>
+</html>

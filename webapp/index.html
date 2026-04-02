@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Survey System</title>
+  <meta name="description" content="Participate in online surveys — select a topic and answer questions.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#060b18;--surface:rgba(255,255,255,.06);--border:rgba(255,255,255,.1);
+      --accent:#4f8ef7;--accent2:#7c3aed;--text:#f1f5f9;--muted:#94a3b8;
+    }
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
+    body::before{content:'';position:fixed;inset:0;
+      background:radial-gradient(ellipse at 25% 25%,rgba(79,142,247,.18),transparent 55%),
+                 radial-gradient(ellipse at 75% 75%,rgba(124,58,237,.14),transparent 55%);
+      pointer-events:none;z-index:0}
+    .z1{position:relative;z-index:1;width:100%;max-width:640px}
+    .hidden{display:none!important}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .fade{animation:fadeUp .3s ease}
+    @keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+    .slide{animation:slideIn .3s ease}
+
+    /* ---- Card shell ---- */
+    .card{background:rgba(255,255,255,.045);backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:24px;padding:2.5rem;width:100%}
+
+    /* ---- Logo / header ---- */
+    .logo{width:60px;height:60px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin:0 auto 1.5rem}
+    .card-title{font-size:1.8rem;font-weight:800;text-align:center;margin-bottom:.4rem}
+    .card-sub{color:var(--muted);text-align:center;font-size:.9rem;margin-bottom:2rem}
+
+    /* ---- Forms ---- */
+    .fg{margin-bottom:1.25rem}
+    .fg label{display:block;font-size:.82rem;font-weight:500;color:var(--muted);margin-bottom:.45rem}
+    .fg select{width:100%;padding:.78rem 1rem;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit;outline:none;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+    .fg select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,.15)}
+    .fg select option{background:#1e293b}
+
+    /* ---- Buttons ---- */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.78rem 1.5rem;border-radius:12px;font-weight:600;font-size:.95rem;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;width:100%}
+    .btn-primary:hover:not(:disabled){opacity:.88;transform:translateY(-1px);box-shadow:0 8px 26px rgba(79,142,247,.3)}
+    .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+    .btn-ghost:hover{background:var(--surface);color:var(--text)}
+    .btn-row{display:flex;gap:.75rem;margin-top:1.5rem}
+    .btn-row .btn{flex:1}
+
+    /* ---- Progress bar ---- */
+    .progress-wrap{margin-bottom:2rem}
+    .progress-info{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:.5rem}
+    .progress-track{height:6px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease}
+
+    /* ---- Question card ---- */
+    .q-label{font-size:.78rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem}
+    .q-text{font-size:1.2rem;font-weight:600;line-height:1.5;margin-bottom:1.5rem}
+
+    /* ---- Radio options ---- */
+    .options{display:flex;flex-direction:column;gap:.75rem}
+    .option-item{display:flex;align-items:center;gap:.9rem;padding:.85rem 1.1rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s}
+    .option-item:hover{background:rgba(79,142,247,.08);border-color:rgba(79,142,247,.3)}
+    .option-item.selected{background:rgba(79,142,247,.12);border-color:var(--accent)}
+    .option-item input[type=radio]{display:none}
+    .option-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+    .option-item.selected .option-dot{border-color:var(--accent);background:var(--accent)}
+    .option-item.selected .option-dot::after{content:'';width:7px;height:7px;background:#fff;border-radius:50%}
+    .option-label{font-size:.95rem;font-weight:500}
+
+    /* ---- Finish screen ---- */
+    .finish-icon{font-size:4rem;text-align:center;margin-bottom:1rem;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+    .finish-text{text-align:center;color:var(--muted);font-size:.95rem;line-height:1.7;margin-bottom:2rem}
+
+    /* ---- Error screen ---- */
+    .err-icon{font-size:3rem;text-align:center;margin-bottom:1rem}
+    .err-text{text-align:center;color:var(--muted);font-size:.92rem;margin-bottom:1.5rem}
+
+    /* ---- Alert ---- */
+    .alert{padding:.7rem 1rem;border-radius:10px;font-size:.85rem;margin-bottom:1rem;display:none}
+    .alert-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171}
+
+    /* ---- Footer link ---- */
+    .footer{text-align:center;margin-top:1.25rem;font-size:.8rem;color:var(--muted)}
+    .footer a{color:var(--accent);text-decoration:none}
+    .footer a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+<div class="z1">
+
+  <!-- ======== HOME ======== -->
+  <div id="pg-home" class="fade">
+    <div class="card">
+      <div class="logo">📋</div>
+      <h1 class="card-title">Online Survey</h1>
+      <p class="card-sub">Choose a topic and share your opinion!</p>
+      <div id="home-err" class="alert alert-err"></div>
+      <div class="fg">
+        <label for="topic-sel">Select a Topic</label>
+        <select id="topic-sel">
+          <option value="">-- Choose a topic --</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="startSurvey()">Start Survey →</button>
+    </div>
+    <div class="footer"><a href="admin.html">🛡️ Admin Panel</a></div>
+  </div>
+
+  <!-- ======== SURVEY ======== -->
+  <div id="pg-survey" class="hidden">
+    <div class="card slide">
+      <div class="progress-wrap">
+        <div class="progress-info">
+          <span id="q-counter">Question 1 of 1</span>
+          <span id="q-pct">0%</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="q-label" id="q-label">Question 1</div>
+      <div class="q-text" id="q-text">Loading...</div>
+      <div class="options" id="q-options"></div>
+      <div id="q-err" class="alert alert-err" style="margin-top:1rem"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btn-prev" onclick="prevQ()">← Back</button>
+        <button class="btn btn-ghost" onclick="cancelSurvey()">✕ Cancel</button>
+        <button class="btn btn-primary" id="btn-next" onclick="nextQ()">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== FINISH ======== -->
+  <div id="pg-finish" class="hidden fade">
+    <div class="card">
+      <div class="finish-icon">🎉</div>
+      <h2 class="card-title">Thank You!</h2>
+      <p class="finish-text">Your responses have been submitted successfully.<br>Your feedback helps us improve!</p>
+      <button class="btn btn-primary" onclick="goHome()">← Take Another Survey</button>
+    </div>
+  </div>
+
+  <!-- ======== ERROR ======== -->
+  <div id="pg-error" class="hidden fade">
+    <div class="card">
+      <div class="err-icon">⚠️</div>
+      <h2 class="card-title">No Questions Found</h2>
+      <p class="err-text">This topic has no questions yet. Please ask the admin to add some questions first.</p>
+      <button class="btn btn-primary" onclick="goHome()">← Go Back</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="storage.js"></script>
+<script>
+// State
+let questions = [];   // current topic's questions in order
+let position = 0;     // current question index
+let selectedTopicId = null;
+
+function boot() {
+  initStorage();
+  loadTopics();
+}
+
+function loadTopics() {
+  const sel = document.getElementById('topic-sel');
+  const topics = TopicDAO.getAll();
+  sel.innerHTML = '<option value="">-- Choose a topic --</option>' +
+    topics.map(t => `<option value="${t.id}">${escHtml(t.title)}</option>`).join('');
+}
+
+// ---- Pages ----
+function showPage(name) {
+  ['home','survey','finish','error'].forEach(p => {
+    const el = document.getElementById(`pg-${p}`);
+    el.classList.toggle('hidden', p !== name);
+  });
+}
+
+function goHome() {
+  questions = []; position = 0; selectedTopicId = null;
+  loadTopics();
+  showPage('home');
+}
+
+// ---- Start Survey ----
+function startSurvey() {
+  const topicId = document.getElementById('topic-sel').value;
+  const errEl = document.getElementById('home-err');
+  errEl.style.display = 'none';
+  if (!topicId) { showAlert(errEl, 'Please select a topic first.'); return; }
+
+  const qs = QuestionDAO.getByTopic(topicId);
+  if (!qs.length) { showPage('error'); return; }
+
+  selectedTopicId = topicId;
+  questions = qs.map(q => ({ ...q, answer: null }));
+  position = 0;
+  renderQuestion();
+  showPage('survey');
+}
+
+// ---- Render current question ----
+function renderQuestion() {
+  const q = questions[position];
+  const total = questions.length;
+  const done = questions.filter(x => x.answer).length;
+  const pct = Math.round((position / total) * 100);
+
+  document.getElementById('q-counter').textContent = `Question ${position+1} of ${total}`;
+  document.getElementById('q-pct').textContent = `${pct}%`;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('q-label').textContent = `Question ${position+1}`;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-err').style.display = 'none';
+
+  // Render options
+  const opts = [q.opt1, q.opt2, q.opt3];
+  document.getElementById('q-options').innerHTML = opts.map((opt, i) => {
+    const val = String(i+1);
+    const selected = q.answer === val ? 'selected' : '';
+    return `<label class="option-item ${selected}" onclick="selectAnswer('${val}', this)">
+      <div class="option-dot"></div>
+      <span class="option-label">${escHtml(opt)}</span>
+    </label>`;
+  }).join('');
+
+  // Update nav buttons
+  document.getElementById('btn-prev').style.visibility = position === 0 ? 'hidden' : 'visible';
+  const isLast = position === total - 1;
+  document.getElementById('btn-next').textContent = isLast ? '✓ Submit' : 'Next →';
+}
+
+function selectAnswer(val, el) {
+  questions[position].answer = val;
+  document.querySelectorAll('.option-item').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('q-err').style.display = 'none';
+}
+
+function prevQ() {
+  if (position > 0) { position--; renderQuestion(); }
+}
+
+function nextQ() {
+  if (!questions[position].answer) {
+    showAlert(document.getElementById('q-err'), 'Please select an answer before continuing.');
+    return;
+  }
+  if (position < questions.length - 1) {
+    position++;
+    renderQuestion();
+  } else {
+    // Last question → submit
+    submitSurvey();
+  }
+}
+
+function cancelSurvey() {
+  if (confirm('Cancel this survey? Your answers will be lost.')) goHome();
+}
+
+function submitSurvey() {
+  const ok = AnswerDAO.store(selectedTopicId, questions);
+  if (ok) showPage('finish');
+  else showPage('error');
+}
+
+// ---- Helpers ----
+function showAlert(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+boot();
+</script>
+</body>
+</html>

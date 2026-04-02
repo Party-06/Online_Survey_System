@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Admin login for Survey System." />
+  <title>Admin Login — SurveyPulse</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+<script src="../js/storage.js"></script>
+<script src="../js/auth.js"></script>
+
+<div class="login-page">
+  <div class="login-card">
+
+    <div class="login-logo">
+      <span class="icon">🔐</span>
+      <h1>Admin Panel</h1>
+      <p>SurveyPulse Management System</p>
+    </div>
+
+    <div id="alert" class="alert alert-error"></div>
+
+    <form id="loginForm" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label class="form-label" for="uname">Username</label>
+        <input id="uname" class="form-control" type="text" placeholder="Enter username" required autocomplete="username" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="pwd">Password</label>
+        <input id="pwd" class="form-control" type="password" placeholder="Enter password" required autocomplete="current-password" />
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">
+        Login →
+      </button>
+    </form>
+
+    <p class="text-muted" style="margin-top:20px;font-size:0.8rem;text-align:center;">
+      Default credentials: <strong style="color:var(--text)">admin / admin</strong>
+    </p>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
+      <a href="../index.html" style="color:var(--primary);font-size:0.85rem;text-decoration:none;">← Back to Survey</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function doLogin(e) {
+    e.preventDefault();
+    const uname = document.getElementById('uname').value.trim();
+    const pwd   = document.getElementById('pwd').value;
+    const alert = document.getElementById('alert');
+
+    if (DB.login(uname, pwd)) {
+      DB.setSession(uname);
+      window.location.replace('home.html');
+    } else {
+      alert.textContent = '❌ Invalid username or password. Please try again.';
+      alert.className = 'alert alert-error show';
+      document.getElementById('pwd').value = '';
+      document.getElementById('pwd').focus();
+    }
+  }
+</script>
+</body>
+</html>

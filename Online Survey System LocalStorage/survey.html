@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Answer survey questions and submit your responses." />
+  <title>Survey — SurveyPulse</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div class="app-wrapper">
+
+  <div class="survey-hero" style="padding-bottom:20px;">
+    <span class="brand" style="font-size:1.8rem;">📋 SurveyPulse</span>
+  </div>
+
+  <div class="survey-container">
+
+    <!-- Topic title -->
+    <p id="topicTitle" class="text-muted" style="margin-bottom:20px;font-weight:600;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;"></p>
+
+    <!-- Progress bar -->
+    <div class="question-progress">
+      <div class="question-progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+
+    <!-- Card -->
+    <div class="card" id="questionCard">
+
+      <!-- counter -->
+      <div class="question-header">
+        <span class="question-counter" id="counter">Question 1 / ?</span>
+        <span id="requiredMsg" class="text-danger" style="font-size:0.82rem;display:none;">⚠️ Please select an option</span>
+      </div>
+
+      <!-- question text -->
+      <div class="question-text" id="questionText">Loading…</div>
+
+      <!-- options -->
+      <div class="radio-group" id="optionsGroup"></div>
+
+      <!-- nav buttons -->
+      <div class="survey-nav">
+        <button id="prevBtn" class="btn btn-ghost" onclick="navigate(-1)">← Previous</button>
+        <button id="nextBtn" class="btn btn-primary" onclick="navigate(1)">Next →</button>
+        <button id="finishBtn" class="btn btn-success" onclick="finish()" style="display:none;">✓ Finish</button>
+        <button class="btn btn-ghost" onclick="cancel()">✕ Cancel</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script>
+  // Parse URL param
+  const params = new URLSearchParams(window.location.search);
+  const topicId = params.get('topicid');
+
+  if (!topicId) { window.location.replace('index.html'); }
+
+  const questions = DB.getQuestions(topicId);
+  if (!questions || questions.length === 0) { window.location.replace('index.html'); }
+
+  // Load topic title
+  const topic = DB.getTopics().find(t => t.id === topicId);
+  document.getElementById('topicTitle').textContent = topic ? `📌 ${topic.title}` : '';
+
+  let position = 0;
+  const userAnswers = {}; // {questionId: '1'|'2'|'3'}
+  const total = questions.length;
+
+  function render() {
+    const q = questions[position];
+    document.getElementById('counter').textContent = `Question ${position + 1} / ${total}`;
+    document.getElementById('questionText').textContent = q.text;
+    document.getElementById('progressFill').style.width = `${((position + 1) / total) * 100}%`;
+    document.getElementById('requiredMsg').style.display = 'none';
+
+    // Options
+    const group = document.getElementById('optionsGroup');
+    group.innerHTML = '';
+    [q.opt1, q.opt2, q.opt3].forEach((opt, i) => {
+      const val = String(i + 1);
+      const selected = userAnswers[q.id] === val;
+      const div = document.createElement('div');
+      div.className = `radio-option${selected ? ' selected' : ''}`;
+      div.innerHTML = `
+        <div class="radio-circle"></div>
+        <span class="radio-label">${opt}</span>
+      `;
+      div.addEventListener('click', () => {
+        userAnswers[q.id] = val;
+        render();
+      });
+      group.appendChild(div);
+    });
+
+    // Nav buttons
+    document.getElementById('prevBtn').disabled = position === 0;
+    const isLast = position === total - 1;
+    document.getElementById('nextBtn').style.display = isLast ? 'none' : '';
+    document.getElementById('finishBtn').style.display = isLast ? '' : 'none';
+  }
+
+  function navigate(dir) {
+    const q = questions[position];
+    if (!userAnswers[q.id]) {
+      document.getElementById('requiredMsg').style.display = 'block';
+      return;
+    }
+    position = Math.max(0, Math.min(total - 1, position + dir));
+    render();
+  }
+
+  function finish() {
+    // Validate all answered
+    const unanswered = questions.filter(q => !userAnswers[q.id]);
+    if (unanswered.length > 0) {
+      document.getElementById('requiredMsg').style.display = 'block';
+      return;
+    }
+    const answers = Object.entries(userAnswers).map(([questionId, answer]) => ({ questionId, answer }));
+    DB.storeSurveyResults(topicId, answers);
+    window.location.href = 'finish.html';
+  }
+
+  function cancel() {
+    if (confirm('Are you sure you want to cancel this survey?')) {
+      window.location.href = 'index.html';
+    }
+  }
+
+  render();
+</script>
+</body>
+</html>

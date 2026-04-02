@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Online Survey System — Participate in surveys and share your opinion." />
+  <title>Online Survey System — Select Topic</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- Hero -->
+  <div class="survey-hero">
+    <span class="brand">📋 SurveyPulse</span>
+    <p class="tagline">Your opinion matters. Share it with the world.</p>
+  </div>
+
+  <!-- Main card -->
+  <div class="survey-container">
+    <div class="card">
+      <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:8px;">Select a Survey Topic</h2>
+      <p class="text-muted" style="margin-bottom:24px;">Choose a topic from the list below and click <strong style="color:var(--text)">Start Survey</strong> to begin.</p>
+
+      <div id="alert" class="alert alert-error"></div>
+
+      <div class="form-group">
+        <label class="form-label" for="topicSelect">Available Topics</label>
+        <select id="topicSelect" class="form-control">
+          <option value="">— Select a topic —</option>
+        </select>
+      </div>
+
+      <button id="startBtn" class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;">
+        🚀 Start Survey
+      </button>
+
+      <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+        <p class="text-muted" style="font-size:0.82rem;">
+          📌 Answer all questions honestly. Your responses are anonymous and stored locally.<br/>
+          <a href="admin/login.html" style="color:var(--primary);text-decoration:none;margin-top:6px;display:inline-block;">🔐 Admin Panel →</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/storage.js"></script>
+<script>
+  const sel = document.getElementById('topicSelect');
+  const btn = document.getElementById('startBtn');
+  const alert = document.getElementById('alert');
+
+  // Load topics
+  const topics = DB.getTopics();
+  if (topics.length === 0) {
+    sel.innerHTML = '<option value="">No topics available</option>';
+    btn.disabled = true;
+  } else {
+    topics.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.title;
+      sel.appendChild(opt);
+    });
+  }
+
+  btn.addEventListener('click', () => {
+    const val = sel.value;
+    if (!val) {
+      alert.textContent = '⚠️ Please select a topic first.';
+      alert.className = 'alert alert-error show';
+      return;
+    }
+    // Check topic has questions
+    const qs = DB.getQuestions(val);
+    if (qs.length === 0) {
+      alert.textContent = '⚠️ This topic has no questions yet. Please choose another.';
+      alert.className = 'alert alert-error show';
+      return;
+    }
+    window.location.href = `survey.html?topicid=${encodeURIComponent(val)}`;
+  });
+
+  sel.addEventListener('change', () => {
+    alert.className = 'alert alert-error';
+  });
+</script>
+</body>
+</html>

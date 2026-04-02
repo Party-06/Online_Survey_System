@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Admin home — manage survey topics and view results." />
+  <title>Topics — SurveyPulse Admin</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+<script src="../js/storage.js"></script>
+<script src="../js/auth.js"></script>
+
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-text">📋 SurveyPulse</div>
+      <div class="logo-sub">Admin Panel</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="home.html" class="active"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="addtopic.html"><span class="nav-icon">➕</span> Add Topic</a>
+      <a href="../index.html" target="_blank"><span class="nav-icon">📋</span> View Survey</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar" id="avatarLetter">A</div>
+        <div>
+          <div class="uname" id="sessionUname">admin</div>
+          <div class="text-muted" style="font-size:0.72rem;">Administrator</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="doLogout()">
+        🚪 Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="page-header flex-between">
+      <div>
+        <h1>Topics</h1>
+        <p>Manage all survey topics and their questions.</p>
+      </div>
+      <a href="addtopic.html" class="btn btn-primary">➕ Add Topic</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Table -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-wrapper" style="border:none;border-radius:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Questions</th>
+              <th>Surveys</th>
+              <th>Added On</th>
+              <th>Added By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="topicsBody">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-backdrop" id="deleteModal">
+  <div class="modal">
+    <h3>🗑️ Delete Topic?</h3>
+    <p>This will permanently delete the topic, all its questions, and all recorded survey answers for this topic.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Session info
+  const session = DB.getSession();
+  if (session) {
+    document.getElementById('sessionUname').textContent = session.uname;
+    document.getElementById('avatarLetter').textContent = session.uname[0].toUpperCase();
+  }
+
+  let pendingDeleteId = null;
+
+  function doLogout() {
+    DB.logout();
+    window.location.replace('login.html');
+  }
+
+  function renderStats(topics) {
+    const totalQ = topics.reduce((s, t) => s + DB.getQuestions(t.id).length, 0);
+    const totalS = topics.reduce((s, t) => s + DB.getSurveyCount(t.id), 0);
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-card"><div class="stat-value">${topics.length}</div><div class="stat-label">Topics</div></div>
+      <div class="stat-card"><div class="stat-value">${totalQ}</div><div class="stat-label">Questions</div></div>
+      <div class="stat-card"><div class="stat-value">${totalS}</div><div class="stat-label">Surveys Taken</div></div>
+    `;
+  }
+
+  function renderTable() {
+    const topics = DB.getTopics();
+    renderStats(topics);
+    const tbody = document.getElementById('topicsBody');
+
+    if (topics.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <h3>No Topics Yet</h3>
+          <p>Click "Add Topic" to create your first survey topic.</p>
+        </div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = topics.map(t => {
+      const qCount = DB.getQuestions(t.id).length;
+      const sCount = DB.getSurveyCount(t.id);
+      return `
+        <tr>
+          <td><strong>${escHtml(t.title)}</strong></td>
+          <td><span class="badge badge-purple">${qCount}</span></td>
+          <td><span class="badge badge-green">${sCount}</span></td>
+          <td class="text-muted">${escHtml(t.addedon)}</td>
+          <td class="text-muted">${escHtml(t.uname)}</td>
+          <td>
+            <div class="actions">
+              <a href="addquestion.html?topicid=${t.id}" class="btn btn-ghost btn-sm">➕ Add Q</a>
+              <a href="topicquestions.html?topicid=${t.id}" class="btn btn-ghost btn-sm">📄 Questions</a>
+              <a href="surveyresults.html?topicid=${t.id}" class="btn btn-ghost btn-sm">📊 Results</a>
+              <button class="btn btn-danger btn-sm" onclick="askDelete('${t.id}')">🗑️ Delete</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function askDelete(topicid) {
+    pendingDeleteId = topicid;
+    document.getElementById('deleteModal').classList.add('show');
+  }
+
+  function closeModal() {
+    pendingDeleteId = null;
+    document.getElementById('deleteModal').classList.remove('show');
+  }
+
+  document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+    if (pendingDeleteId) {
+      DB.deleteTopic(pendingDeleteId);
+      closeModal();
+      renderTable();
+    }
+  });
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  renderTable();
+</script>
+</body>
+</html>

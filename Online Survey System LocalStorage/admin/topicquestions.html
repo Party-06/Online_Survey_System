@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="View and manage questions for a survey topic." />
+  <title>Topic Questions — SurveyPulse Admin</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+<script src="../js/storage.js"></script>
+<script src="../js/auth.js"></script>
+
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-text">📋 SurveyPulse</div>
+      <div class="logo-sub">Admin Panel</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="home.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="addtopic.html"><span class="nav-icon">➕</span> Add Topic</a>
+      <a href="../index.html" target="_blank"><span class="nav-icon">📋</span> View Survey</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar" id="avatarLetter">A</div>
+        <div>
+          <div class="uname" id="sessionUname">admin</div>
+          <div class="text-muted" style="font-size:0.72rem;">Administrator</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="doLogout()">
+        🚪 Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="page-header flex-between">
+      <div>
+        <h1>Topic Questions</h1>
+        <p id="topicLabel" class="text-muted">Loading…</p>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <a id="addQLink" href="addquestion.html" class="btn btn-primary">➕ Add Question</a>
+        <a href="home.html" class="btn btn-ghost">← Back</a>
+      </div>
+    </div>
+
+    <!-- Questions table -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-wrapper" style="border:none;border-radius:0;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Question</th>
+              <th>Option 1</th>
+              <th>Option 2</th>
+              <th>Option 3</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="questionsBody">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Delete modal -->
+<div class="modal-backdrop" id="deleteModal">
+  <div class="modal">
+    <h3>🗑️ Delete Question?</h3>
+    <p>This will permanently remove the question and all its recorded answers.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const session = DB.getSession();
+  if (session) {
+    document.getElementById('sessionUname').textContent = session.uname;
+    document.getElementById('avatarLetter').textContent = session.uname[0].toUpperCase();
+  }
+
+  const params  = new URLSearchParams(window.location.search);
+  const topicId = params.get('topicid');
+  if (!topicId) window.location.replace('home.html');
+
+  const topic = DB.getTopics().find(t => t.id === topicId);
+  document.getElementById('topicLabel').textContent = topic ? `📌 ${topic.title}` : 'Unknown topic';
+  document.getElementById('addQLink').href = `addquestion.html?topicid=${topicId}`;
+
+  let pendingDeleteId = null;
+
+  function renderTable() {
+    const qs = DB.getQuestions(topicId);
+    const tbody = document.getElementById('questionsBody');
+
+    if (qs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6">
+        <div class="empty-state">
+          <div class="empty-icon">❓</div>
+          <h3>No Questions Yet</h3>
+          <p>Add questions to this topic so users can start surveying.</p>
+        </div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = qs.map((q, i) => `
+      <tr>
+        <td><span class="badge badge-purple">${i + 1}</span></td>
+        <td><strong>${escHtml(q.text)}</strong></td>
+        <td class="text-muted">${escHtml(q.opt1)}</td>
+        <td class="text-muted">${escHtml(q.opt2)}</td>
+        <td class="text-muted">${escHtml(q.opt3)}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="askDelete('${q.id}')">🗑️ Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function askDelete(qid) {
+    pendingDeleteId = qid;
+    document.getElementById('deleteModal').classList.add('show');
+  }
+
+  function closeModal() {
+    pendingDeleteId = null;
+    document.getElementById('deleteModal').classList.remove('show');
+  }
+
+  document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+    if (pendingDeleteId) {
+      DB.deleteQuestion(pendingDeleteId);
+      closeModal();
+      renderTable();
+    }
+  });
+
+  function doLogout() {
+    DB.logout();
+    window.location.replace('login.html');
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  renderTable();
+</script>
+</body>
+</html>
